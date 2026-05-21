@@ -112,6 +112,23 @@
   .progress-fill { height:100%; border-radius:99px; }
   .add-budget-btn { width:100%; padding:14px; border-radius:14px; border:1px dashed rgba(197,165,247,0.3); background:transparent; color:var(--accent); font-size:14px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; margin-top:4px; }
  
+  /* alerta de orçamento estourado */
+  .budget-card.over { border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.05); }
+  .budget-over-tag { display:flex; align-items:center; gap:5px; margin-top:8px; font-size:11px; color:var(--neg); font-weight:500; }
+ 
+  /* alert banner no topo da aba orçamento */
+  .budget-alert-banner {
+    background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.25);
+    border-radius:14px; padding:12px 14px; margin-bottom:12px;
+    display:flex; align-items:flex-start; gap:10px;
+  }
+  .budget-alert-icon { font-size:18px; flex-shrink:0; }
+  .budget-alert-text { font-size:13px; color:var(--neg); line-height:1.5; }
+  .budget-alert-text strong { font-weight:600; }
+ 
+  /* toast de alerta (laranja) */
+  .toast.warn { background:rgba(251,191,36,0.12); border-color:rgba(251,191,36,0.3); color:#fbbf24; }
+ 
   /* GOALS */
   .goals-wrap { padding:0 16px; padding-top:16px; }
   .goal-card { background:var(--bg2); border:1px solid var(--border); border-radius:18px; padding:16px; margin-bottom:10px; cursor:pointer; transition:background .15s; }
@@ -536,7 +553,7 @@ function loadData() {
  
 function saveData() {
   appData.lastSave = new Date().toISOString();
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); } catch(e) { showToast('Erro ao salvar',true); }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); } catch(e) { showToast('Erro ao salvar','error'); }
   updateConfigStats();
 }
  
@@ -567,7 +584,7 @@ function importData(e) {
       }
       refreshAll();
       showToast('✓ ' + appData.transactions.length + ' transações importadas!');
-    } catch { showToast('Arquivo inválido',true); }
+    } catch { showToast('Arquivo inválido','error'); }
   };
   reader.readAsText(file); e.target.value = '';
 }
@@ -604,13 +621,13 @@ document.querySelectorAll('.sheet-overlay').forEach(el => {
  
 // ── TOAST ─────────────────────────────────────
 let toastTimer = null;
-function showToast(msg, isError) {
+function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className = 'toast' + (isError?' error':'');
+  t.className = 'toast' + (type ? ' ' + type : '');
   t.classList.add('show');
   if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+  toastTimer = setTimeout(() => t.classList.remove('show'), type === 'error' ? 3000 : 2800);
 }
  
 // ── VIEWS ─────────────────────────────────────
@@ -707,7 +724,7 @@ function setEditType(t) {
  
 function saveEditTx() {
   const raw = parseFloat(document.getElementById('editAmount').value);
-  if (!raw || isNaN(raw) || raw<=0) { showToast('Digite um valor válido',true); return; }
+  if (!raw || isNaN(raw) || raw<=0) { showToast('Digite um valor válido','error'); return; }
   const desc = document.getElementById('editDesc').value.trim() || editCat.name;
   const tx = appData.transactions.find(t=>t.id===activeTxId);
   if (!tx) return;
@@ -754,7 +771,7 @@ function setType(t) {
  
 function saveTx() {
   const raw = parseFloat(document.getElementById('txAmount').value);
-  if (!raw || isNaN(raw) || raw<=0) { showToast('Digite um valor válido',true); return; }
+  if (!raw || isNaN(raw) || raw<=0) { showToast('Digite um valor válido','error'); return; }
   const cat  = selectedCat || CATS[CATS.length-1];
   const desc = document.getElementById('txDesc').value.trim() || cat.name;
   appData.transactions.push({id:Date.now(), type:currentType, amount:raw, desc, catId:cat.id, date:new Date().toISOString()});
@@ -764,7 +781,29 @@ function saveTx() {
   document.querySelectorAll('#catsGrid .cat-btn').forEach(b=>b.classList.remove('selected'));
   selectedCat = null;
   renderHome(); buildBudget(); renderDonut();
-  showToast('✓ Lançamento salvo!');
+ 
+  // verifica se estourou orçamento
+  if (currentType === 'expense') {
+    const budgets = appData.budgets || {};
+    const lim = budgets[cat.id];
+    if (lim) {
+      const spent = appData.transactions
+        .filter(t => t.type==='expense' && t.catId===cat.id)
+        .reduce((s,t) => s+t.amount, 0);
+      if (spent > lim) {
+        const over = spent - lim;
+        setTimeout(() => showToast('⚠️ ' + cat.name + ' estourou em R$ ' + over.toLocaleString('pt-BR',{minimumFractionDigits:2}), 'warn'), 400);
+      } else if (spent / lim >= 0.9) {
+        setTimeout(() => showToast('⚠️ ' + cat.name + ': 90% do limite usado', 'warn'), 400);
+      } else {
+        showToast('✓ Lançamento salvo!');
+      }
+    } else {
+      showToast('✓ Lançamento salvo!');
+    }
+  } else {
+    showToast('✓ Lançamento salvo!');
+  }
   switchView('home');
 }
  
@@ -780,22 +819,53 @@ function buildBudget() {
   }
   const spent = {};
   appData.transactions.filter(t=>t.type==='expense').forEach(t => { spent[t.catId]=(spent[t.catId]||0)+t.amount; });
+ 
+  // banner de alertas
+  const overCats  = cats.filter(id => spent[id] > (budgets[id]||0));
+  const warnCats  = cats.filter(id => !overCats.includes(id) && spent[id] >= (budgets[id]||0)*0.9);
+ 
+  if (overCats.length) {
+    const names = overCats.map(id => { const c=CATS.find(x=>x.id===id); return c?c.icon+' '+c.name:id; }).join(', ');
+    list.innerHTML +=
+      '<div class="budget-alert-banner">' +
+        '<span class="budget-alert-icon">🚨</span>' +
+        '<div class="budget-alert-text"><strong>Limite estourado!</strong><br>' + names + ' ultrapassou o orçamento do mês.</div>' +
+      '</div>';
+  } else if (warnCats.length) {
+    const names = warnCats.map(id => { const c=CATS.find(x=>x.id===id); return c?c.icon+' '+c.name:id; }).join(', ');
+    list.innerHTML +=
+      '<div class="budget-alert-banner" style="background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.25)">' +
+        '<span class="budget-alert-icon">⚠️</span>' +
+        '<div class="budget-alert-text" style="color:#fbbf24"><strong>Atenção!</strong><br>' + names + ' está acima de 90% do limite.</div>' +
+      '</div>';
+  }
+ 
   cats.forEach(catId => {
     const c   = CATS.find(x=>x.id===catId);
     if (!c) return;
-    const lim = budgets[catId];
-    const s   = spent[catId]||0;
-    const pct = lim ? Math.round((s/lim)*100) : 0;
-    const col = pct>=100 ? '#f87171' : c.color;
-    const div = document.createElement('div');
-    div.className = 'budget-card';
+    const lim  = budgets[catId];
+    const s    = spent[catId]||0;
+    const pct  = lim ? Math.round((s/lim)*100) : 0;
+    const over = s > lim;
+    const warn = !over && pct >= 90;
+    const col  = over ? '#f87171' : warn ? '#fbbf24' : c.color;
+    const div  = document.createElement('div');
+    div.className = 'budget-card' + (over?' over':'');
     div.style.cursor = 'pointer';
+    let extra = '';
+    if (over) {
+      const diff = s - lim;
+      extra = '<div class="budget-over-tag">🚨 Estourou R$ '+diff.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div>';
+    } else if (warn) {
+      extra = '<div class="budget-over-tag" style="color:#fbbf24">⚠️ '+pct+'% do limite usado</div>';
+    }
     div.innerHTML =
       '<div class="budget-top">' +
         '<div class="budget-cat"><span class="budget-cat-icon">'+c.icon+'</span><span class="budget-cat-name">'+c.name+'</span></div>' +
         '<div class="budget-amounts"><strong>R$ '+s.toLocaleString('pt-BR',{minimumFractionDigits:0})+'</strong> / R$ '+lim.toLocaleString('pt-BR')+'</div>' +
       '</div>' +
-      '<div class="progress-bar"><div class="progress-fill" style="width:'+Math.min(pct,100)+'%;background:'+col+'"></div></div>';
+      '<div class="progress-bar"><div class="progress-fill" style="width:'+Math.min(pct,100)+'%;background:'+col+'"></div></div>' +
+      extra;
     div.addEventListener('click', () => editBudgetPrompt(catId, lim));
     list.appendChild(div);
   });
@@ -861,9 +931,9 @@ function buildBudgetCatSelect(available, selectedId) {
 }
  
 function saveBudgetSheet() {
-  if (!activeBudgetCatId) { showToast('Selecione uma categoria',true); return; }
+  if (!activeBudgetCatId) { showToast('Selecione uma categoria','error'); return; }
   const val = parseFloat(document.getElementById('budgetLimitInput').value);
-  if (!val || isNaN(val) || val<=0) { showToast('Digite um valor válido',true); return; }
+  if (!val || isNaN(val) || val<=0) { showToast('Digite um valor válido','error'); return; }
   appData.budgets = appData.budgets||{};
   appData.budgets[activeBudgetCatId] = val;
   saveData(); buildBudget(); closeSheet('budgetSheet');
@@ -947,8 +1017,8 @@ function saveGoal() {
   const name    = document.getElementById('goalName').value.trim();
   const target  = parseFloat(document.getElementById('goalTarget').value);
   const current = parseFloat(document.getElementById('goalCurrent').value)||0;
-  if (!name)               { showToast('Digite um nome',true); return; }
-  if (!target||isNaN(target)||target<=0) { showToast('Digite um valor alvo',true); return; }
+  if (!name)               { showToast('Digite um nome','error'); return; }
+  if (!target||isNaN(target)||target<=0) { showToast('Digite um valor alvo','error'); return; }
   appData.goals = appData.goals||[];
   if (activeGoalId===null) {
     appData.goals.push({id:Date.now(), icon:selectedGoalIcon, name, target, current});
