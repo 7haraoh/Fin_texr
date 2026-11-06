@@ -1,5 +1,7 @@
 "use client";
 
+import { dec1 } from "@/lib/finance/format";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveBudgetPlan } from "@/app/actions";
@@ -44,7 +46,7 @@ export function BudgetEditor({ income, suggested, saved }: {
               <input className="input num py-1.5 pl-8 text-right" inputMode="decimal" value={vals[k]} aria-label={ALLOCATION_LABELS[k]}
                 onChange={(e) => setVals((p) => ({ ...p, [k]: e.target.value }))} />
             </div>
-            <div className="num hidden text-right text-xs text-muted sm:block">{income > 0 ? `${((nums[k] / income) * 100).toFixed(1)}%` : "—"}</div>
+            <div className="num hidden text-right text-xs text-muted sm:block">{income > 0 ? `${dec1(((nums[k] / income) * 100))}%` : "—"}</div>
           </div>
         ))}
       </div>

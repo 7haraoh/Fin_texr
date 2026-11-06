@@ -1,3 +1,4 @@
+import { dec1 } from "./format";
 // Alertas e oportunidades determinísticos, priorizados e limitados para evitar excesso.
 
 import { BudgetLine, CategoryLimitStatus } from "./budget";
@@ -79,9 +80,9 @@ export function generateInsights(ctx: Ctx, max = 8): Insight[] {
 
   // Reserva
   if (income > 0 && s.essentialMonthlyCost > 0) {
-    if (reserve.coverageMonths < 1) add({ id: "reserva_baixa", kind: "risco", severity: "alto", title: "Reserva de emergência insuficiente", detail: `Cobre ${reserve.coverageMonths.toFixed(1)} mês das despesas essenciais. Meta recomendada: ${fmt(reserve.recommended)}.`, href: "/reserva" });
-    else if (reserve.coverageMonths < 3) add({ id: "reserva_media", kind: "alerta", severity: "medio", title: "Reserva abaixo de 3 meses", detail: `Cobertura atual: ${reserve.coverageMonths.toFixed(1)} meses. Faltam ${fmt(reserve.gap)} para a meta recomendada.`, href: "/reserva" });
-    else if (reserve.coverageMonths >= reserve.recommendedMonths) add({ id: "reserva_ok", kind: "positivo", severity: "info", title: "Reserva de emergência completa", detail: `Cobre ${reserve.coverageMonths.toFixed(1)} meses de despesas essenciais.` });
+    if (reserve.coverageMonths < 1) add({ id: "reserva_baixa", kind: "risco", severity: "alto", title: "Reserva de emergência insuficiente", detail: `Cobre ${dec1(reserve.coverageMonths)} mês das despesas essenciais. Meta recomendada: ${fmt(reserve.recommended)}.`, href: "/reserva" });
+    else if (reserve.coverageMonths < 3) add({ id: "reserva_media", kind: "alerta", severity: "medio", title: "Reserva abaixo de 3 meses", detail: `Cobertura atual: ${dec1(reserve.coverageMonths)} meses. Faltam ${fmt(reserve.gap)} para a meta recomendada.`, href: "/reserva" });
+    else if (reserve.coverageMonths >= reserve.recommendedMonths) add({ id: "reserva_ok", kind: "positivo", severity: "info", title: "Reserva de emergência completa", detail: `Cobre ${dec1(reserve.coverageMonths)} meses de despesas essenciais.` });
   }
 
   // Orçamento
@@ -99,8 +100,10 @@ export function generateInsights(ctx: Ctx, max = 8): Insight[] {
 
   // Categorias: crescimento e peso excessivo
   for (const c of s.categories) {
-    if (c.average >= 100 && c.growth !== null && c.growth > 0.35 && c.thisMonth - c.average * 0.5 > 80) {
-      add({ id: `cresc_${c.id}`, kind: "alerta", severity: "medio", title: `${c.name} cresceu acima do normal`, detail: `${fmt(c.thisMonth)} até agora no mês, contra média de ${fmt(c.average)} por mês completo.`, href: "/despesas" });
+    if (c.average >= 100 && c.growth !== null && c.growth > 0.25 && c.thisMonth - c.average > 80) {
+      add({ id: `cresc_${c.id}`, kind: "alerta", severity: "medio", title: `${c.name} já superou a média mensal`, detail: `${fmt(c.thisMonth)} até agora no mês, contra média de ${fmt(c.average)} por mês completo (+${pctTxt(c.growth)}).`, href: "/despesas" });
+    } else if (c.average >= 100 && c.trend !== null && c.trend > 0.3 && c.previous - c.average > 80 && c.bucket !== "essenciais") {
+      add({ id: `tend_${c.id}`, kind: "oportunidade", severity: "info", title: `${c.name} cresceu no último mês`, detail: `${fmt(c.previous)} no mês passado, ${pctTxt(c.trend)} acima da média de ${fmt(c.average)}. Vale observar se virou hábito.`, href: "/despesas" });
     }
     const limitShare = c.bucket === "lazer" ? 0.12 : c.bucket === "pessoais" ? 0.15 : 1;
     if (income > 0 && c.shareOfIncome > limitShare) {

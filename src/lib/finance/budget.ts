@@ -1,3 +1,4 @@
+import { dec1 } from "./format";
 // Orçamento personalizado: parte da realidade do usuário (gastos essenciais
 // observados, dívidas, reserva, metas e estilo de vida), não de regras fixas.
 
@@ -52,8 +53,8 @@ export function suggestBudget(
   // Reserva e investimentos conforme a cobertura atual
   const cov = reserve.coverageMonths;
   let reserveShare: number, investShare: number;
-  if (cov < 3) { reserveShare = 0.3; investShare = 0; notes.push(`Reserva cobre ${cov.toFixed(1)} meses: ela é a prioridade de poupança agora.`); }
-  else if (cov < reserve.recommendedMonths) { reserveShare = 0.18; investShare = 0.07; notes.push(`Reserva em construção (${cov.toFixed(1)} de ${reserve.recommendedMonths} meses): divisão entre reserva e investimentos.`); }
+  if (cov < 3) { reserveShare = 0.3; investShare = 0; notes.push(`Reserva cobre ${dec1(cov)} meses: ela é a prioridade de poupança agora.`); }
+  else if (cov < reserve.recommendedMonths) { reserveShare = 0.18; investShare = 0.07; notes.push(`Reserva em construção (${dec1(cov)} de ${reserve.recommendedMonths} meses): divisão entre reserva e investimentos.`); }
   else { reserveShare = 0; investShare = 0.2; notes.push("Reserva completa: a poupança passa a ir para investimentos e metas."); }
 
   // Lazer conforme preferência economizar × aproveitar

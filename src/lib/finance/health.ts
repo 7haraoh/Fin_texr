@@ -1,3 +1,4 @@
+import { dec1 } from "./format";
 // Classificação de saúde financeira (0–100) combinando múltiplos fatores —
 // não apenas saldo bancário.
 
@@ -57,7 +58,7 @@ export function computeHealth(s: Snapshot, goals: GoalAnalysis[]): HealthResult 
   components.push({
     key: "poupanca", label: "Capacidade de economia", weight: 25,
     score: scale(s.savingsRate, -0.05, 0.25),
-    detail: `${(s.savingsRate * 100).toFixed(1)}% da renda sobra após gastos e dívidas`,
+    detail: `${dec1((s.savingsRate * 100))}% da renda sobra após gastos e dívidas`,
   });
 
   // 2. Endividamento: parcelas / renda e uso de cartões
@@ -66,14 +67,14 @@ export function computeHealth(s: Snapshot, goals: GoalAnalysis[]): HealthResult 
   if (s.debts.lateCount > 0) debtScore *= 0.4;
   components.push({
     key: "dividas", label: "Endividamento", weight: 25, score: debtScore,
-    detail: `${(s.debtRatio * 100).toFixed(1)}% da renda em parcelas${s.debts.lateCount ? ` · ${s.debts.lateCount} em atraso` : ""}`,
+    detail: `${dec1((s.debtRatio * 100))}% da renda em parcelas${s.debts.lateCount ? ` · ${s.debts.lateCount} em atraso` : ""}`,
   });
 
   // 3. Reserva de emergência (meses de despesas essenciais cobertos)
   const coverage = s.essentialMonthlyCost > 0 ? s.assets.reserve / s.essentialMonthlyCost : 0;
   components.push({
     key: "reserva", label: "Reserva de emergência", weight: 20, score: scale(coverage, 0, 6),
-    detail: `${coverage.toFixed(1)} meses de despesas essenciais`,
+    detail: `${dec1(coverage)} meses de despesas essenciais`,
   });
 
   // 4. Liquidez: dinheiro disponível vs compromissos do mês
@@ -81,14 +82,14 @@ export function computeHealth(s: Snapshot, goals: GoalAnalysis[]): HealthResult 
   const liquidityRatio = due + s.baseline.essential > 0 ? s.assets.liquid / (due + s.baseline.essential) : 1;
   components.push({
     key: "liquidez", label: "Liquidez", weight: 15, score: scale(liquidityRatio, 0.3, 2),
-    detail: `Dinheiro líquido cobre ${liquidityRatio.toFixed(1)}× os compromissos do mês`,
+    detail: `Dinheiro líquido cobre ${dec1(liquidityRatio)}× os compromissos do mês`,
   });
 
   // 5. Comprometimento da renda com fixos
   components.push({
     key: "comprometimento", label: "Comprometimento da renda", weight: 10,
     score: scale(s.commitmentRatio, 0.85, 0.45),
-    detail: `${(s.commitmentRatio * 100).toFixed(1)}% da renda em gastos fixos e parcelas`,
+    detail: `${dec1((s.commitmentRatio * 100))}% da renda em gastos fixos e parcelas`,
   });
 
   // 6. Metas no prazo

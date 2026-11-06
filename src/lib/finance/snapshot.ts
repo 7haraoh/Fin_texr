@@ -6,7 +6,7 @@
 //  • Parcelas de empréstimos/financiamentos vêm do cadastro de Obrigações.
 
 import { CardStatus, cardDueByMonth, computeCardStatus } from "./cards";
-import { addMonthsKey, monthKey, monthLabel, parseISO, remainingDaysInMonth } from "./dates";
+import { addMonthsKey, monthKey, monthLabel, remainingDaysInMonth } from "./dates";
 import {
   Allocations, Bucket, Category, FinancialData, IncomeSource, Recurrence, Transaction, num, round2,
 } from "./types";
@@ -48,7 +48,8 @@ export interface CategoryStat {
   average: number;     // média dos meses completos de referência
   previous: number;    // mês anterior
   shareOfIncome: number;
-  growth: number | null; // variação do mês atual projetado vs média
+  growth: number | null; // mês atual (até hoje) vs média de mês completo
+  trend: number | null;  // mês anterior vs média de referência
 }
 
 export interface RecurringItem {
@@ -170,10 +171,13 @@ export function buildSnapshot(data: FinancialData, today: string): Snapshot {
     const v = num(a.value);
     totalAssets += v;
     byType[a.type] = round2((byType[a.type] ?? 0) + v);
+    const isCash = a.type === "conta" || a.type === "especie" || a.type === "poupanca";
+    // A reserva conta como liquidez qualquer que seja o tipo (ex.: CDB de liquidez diária)
+    // e não é somada também em "investimentos", evitando contagem dupla.
     if (a.is_emergency_reserve) reserve += v;
-    if (a.type === "conta" || a.type === "especie" || a.type === "poupanca") liquid += v;
+    if (isCash || a.is_emergency_reserve) liquid += v;
     if ((a.type === "conta" || a.type === "especie") && !a.is_emergency_reserve) available += v;
-    if (a.type === "investimento") investments += v;
+    if (a.type === "investimento" && !a.is_emergency_reserve) investments += v;
     if (a.type === "imovel" || a.type === "veiculo" || a.type === "outro") illiquid += v;
   }
 
@@ -294,7 +298,6 @@ export function buildSnapshot(data: FinancialData, today: string): Snapshot {
   const savingsCapacity = round2(monthlyNet - baseline.expenses - monthlyPayments);
 
   // ---------- Categorias ----------
-  const { d: dayOfMonth } = parseISO(today);
   const prevKey = addMonthsKey(curKey, -1);
   const categories: CategoryStat[] = [];
   for (const [cid, m] of catMonth) {
@@ -302,9 +305,9 @@ export function buildSnapshot(data: FinancialData, today: string): Snapshot {
     const thisMonth = round2(m.get(curKey) ?? 0);
     const average = complete.length ? round2(complete.reduce((s, f) => s + (m.get(f.key) ?? 0), 0) / complete.length) : 0;
     if (thisMonth === 0 && average === 0) continue;
-    // Projeção linear apenas para gastos variáveis do mês corrente seria imprecisa;
-    // comparamos o realizado até hoje com a média proporcional ao dia.
-    const proportionalAvg = average * Math.min(1, dayOfMonth / 30);
+    // Comparamos o realizado até hoje com a média do mês COMPLETO: só sinaliza
+    // crescimento quando o mês já superou a média, sem falsos alertas para contas
+    // pagas no início do mês.
     categories.push({
       id: cid,
       name: cat?.name ?? "Sem categoria",
@@ -314,7 +317,8 @@ export function buildSnapshot(data: FinancialData, today: string): Snapshot {
       average,
       previous: round2(m.get(prevKey) ?? 0),
       shareOfIncome: monthlyNet > 0 ? (complete.length ? average : thisMonth) / monthlyNet : 0,
-      growth: average > 0 ? (thisMonth - proportionalAvg) / Math.max(proportionalAvg, 1) : null,
+      growth: average > 0 ? (thisMonth - average) / average : null,
+      trend: average > 0 ? (round2(m.get(prevKey) ?? 0) - average) / average : null,
     });
   }
   categories.sort((a, b) => b.thisMonth - a.thisMonth || b.average - a.average);

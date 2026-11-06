@@ -74,6 +74,7 @@
 html, body { background: var(--bg); color: var(--fg); }
 body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 .num { font-variant-numeric: tabular-nums; }
+@layer components {
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
 .input {
   width: 100%; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
@@ -81,6 +82,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 }
 .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
 .input[aria-invalid="true"] { border-color: var(--neg); }
+}
 ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 .prose-chat p { margin: 0.4rem 0; }
 .prose-chat ul, .prose-chat ol { margin: 0.4rem 0; padding-left: 1.2rem; }

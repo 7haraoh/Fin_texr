@@ -28,3 +28,8 @@ export function monthsText(n: number): string {
   if (r < 1) return `${Math.max(0, Math.round(n * 30))} dias`;
   return `${r.toLocaleString("pt-BR")} ${r === 1 ? "mês" : "meses"}`;
 }
+
+/** Número com 1 casa decimal no padrão brasileiro (2,8). */
+export function dec1(v: number): string {
+  return (Number.isFinite(v) ? v : 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}

@@ -7,7 +7,14 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart,
   ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { brl, brlShort } from "@/lib/finance/format";
+import { brl } from "@/lib/finance/format";
+
+const axisMoney = (v: number) => {
+  const a = Math.abs(v);
+  if (a >= 1_000_000) return `R$ ${(v / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mi`;
+  if (a >= 1_000) return `R$ ${(v / 1_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mil`;
+  return `R$ ${Math.round(v)}`;
+};
 
 export const SERIES = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 export const OTHER = "var(--chart-6)";
@@ -41,7 +48,7 @@ export function GroupedBars({ data, series, height = 240 }: {
       <BarChart data={data} barGap={2} barCategoryGap="28%">
         {grid}
         <XAxis dataKey="label" {...axis} />
-        <YAxis {...axis} tickFormatter={(v) => brlShort(v)} width={64} />
+        <YAxis {...axis} tickFormatter={axisMoney} width={72} />
         <Tooltip content={<TooltipBox />} cursor={{ fill: "var(--surface-2)" }} />
         {series.length > 1 && legend}
         {series.map((s, i) => <Bar key={s.key} dataKey={s.key} name={s.name} fill={SERIES[i]} radius={[4, 4, 0, 0]} maxBarSize={28} />)}
@@ -56,7 +63,7 @@ export function SignedBars({ data, dataKey, name, height = 200 }: { data: Record
       <BarChart data={data} barCategoryGap="35%">
         {grid}
         <XAxis dataKey="label" {...axis} />
-        <YAxis {...axis} tickFormatter={(v) => brlShort(v)} width={64} />
+        <YAxis {...axis} tickFormatter={axisMoney} width={72} />
         <ReferenceLine y={0} stroke="var(--faint)" />
         <Tooltip content={<TooltipBox />} cursor={{ fill: "var(--surface-2)" }} />
         <Bar dataKey={dataKey} name={name} radius={[4, 4, 4, 4]} maxBarSize={28}>
@@ -84,7 +91,7 @@ export function Lines({ data, series, height = 240, area, dashedFrom }: {
           </defs>
           {grid}
           <XAxis dataKey="label" {...axis} minTickGap={16} />
-          <YAxis {...axis} tickFormatter={(v) => brlShort(v)} width={64} />
+          <YAxis {...axis} tickFormatter={axisMoney} width={72} />
           <Tooltip content={<TooltipBox />} cursor={{ stroke: "var(--faint)" }} />
           <Area type="monotone" dataKey={s.key} name={s.name} stroke={s.color ?? SERIES[0]} strokeWidth={2} fill={`url(#g-${s.key})`} activeDot={{ r: 4 }} />
         </AreaChart>
@@ -96,7 +103,7 @@ export function Lines({ data, series, height = 240, area, dashedFrom }: {
       <LineChart data={data}>
         {grid}
         <XAxis dataKey="label" {...axis} minTickGap={16} />
-        <YAxis {...axis} tickFormatter={(v) => brlShort(v)} width={64} />
+        <YAxis {...axis} tickFormatter={axisMoney} width={72} />
         <Tooltip content={<TooltipBox />} cursor={{ stroke: "var(--faint)" }} />
         {series.length > 1 && legend}
         {dashedFrom && <ReferenceLine x={dashedFrom} stroke="var(--faint)" strokeDasharray="4 4" label={{ value: "hoje", fill: "var(--faint)", fontSize: 11, position: "insideTopRight" }} />}

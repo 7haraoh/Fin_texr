@@ -1,3 +1,4 @@
+import { dec1 } from "./format";
 // Simulador de compras: avaliação determinística, com motivos explícitos.
 
 import { Snapshot } from "./snapshot";
@@ -152,7 +153,7 @@ export function evaluatePurchase(s: Snapshot, reserve: ReserveAnalysis, p: Purch
 
   // Reserva e metas
   if (reserve.coverageMonths < 3 && p.need !== "necessidade") {
-    bump(Math.max(2, severity === 3 ? 3 : 2), `Sua reserva cobre só ${reserve.coverageMonths.toFixed(1)} meses de despesas essenciais; uma compra não essencial agora atrasa sua proteção financeira.`);
+    bump(Math.max(2, severity === 3 ? 3 : 2), `Sua reserva cobre só ${dec1(reserve.coverageMonths)} meses de despesas essenciais; uma compra não essencial agora atrasa sua proteção financeira.`);
   }
   if (s.plannedSavings > 0 && monthsOfSavings !== null && monthsOfSavings > 3 && p.need === "desejo") {
     bump(2, `O custo total equivale a ${monthsOfSavings.toLocaleString("pt-BR")} meses da sua capacidade de economia, competindo com suas metas.`);

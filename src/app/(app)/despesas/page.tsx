@@ -70,7 +70,7 @@ export default async function Despesas({ searchParams }: { searchParams: Promise
                     <td className="num px-5 py-2 text-right">{brl(c.thisMonth)}</td>
                     <td className="num px-5 py-2 text-right text-muted">{c.average ? brl(c.average) : "—"}</td>
                     <td className="num px-5 py-2 text-right text-muted">{pct(c.shareOfIncome)}</td>
-                    <td className="px-5 py-2 text-right">{c.growth !== null && c.growth > 0.35 && c.average >= 100 ? <Badge tone="warn">acima do ritmo</Badge> : null}</td>
+                    <td className="px-5 py-2 text-right">{c.growth !== null && c.growth > 0.25 && c.average >= 100 ? <Badge tone="warn">acima da média</Badge> : c.trend !== null && c.trend > 0.3 && c.average >= 100 ? <Badge tone="info">em alta</Badge> : null}</td>
                   </tr>
                 ))}
               </tbody>

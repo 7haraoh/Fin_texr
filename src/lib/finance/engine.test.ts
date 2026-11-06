@@ -196,3 +196,20 @@ describe("projeções", () => {
     expect(p[12].netWorth).toBeGreaterThan(p[0].netWorth);
   });
 });
+
+describe("regressões", () => {
+  it("conta paga no início do mês não gera alerta de crescimento", () => {
+    const txs = ["2026-08", "2026-09", "2026-10", "2026-11"].map((m) =>
+      tx({ amount: 1500, occurred_on: `${m}-02`, category_id: "c-aluguel", is_essential: true, recurrence: "mensal", description: "Aluguel" }));
+    const a = analyze(baseData({ transactions: txs }), TODAY);
+    expect(a.insights.some((i) => i.id.startsWith("cresc_"))).toBe(false);
+  });
+  it("reserva aplicada em investimento conta como liquidez e não duplica em investimentos", () => {
+    const data = baseData();
+    data.assets.push({ id: "a4", name: "CDB reserva", type: "investimento", value: 5000, institution: null, is_emergency_reserve: true, notes: null });
+    const s = buildSnapshot(data, TODAY);
+    expect(s.assets.reserve).toBe(17000);
+    expect(s.assets.liquid).toBe(21000);
+    expect(s.assets.investments).toBe(0);
+  });
+});

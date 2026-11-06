@@ -1,3 +1,4 @@
+import { dec1 } from "@/lib/finance/format";
 import { loadAnalysis } from "@/lib/data";
 import { DEFAULT_SCENARIOS, SCENARIO_LABELS, project, type ScenarioKey } from "@/lib/finance/projection";
 import { brl } from "@/lib/finance/format";
@@ -53,9 +54,9 @@ export default async function Projecoes() {
               <div key={k} className="rounded-lg border border-line p-3 text-sm">
                 <div className="font-medium">{SCENARIO_LABELS[k]}</div>
                 <ul className="mt-2 space-y-1 text-xs text-muted">
-                  <li>Crescimento da renda: {(a.incomeGrowthYear * 100).toFixed(1)}% a.a.</li>
-                  <li>Inflação das despesas: {(a.inflationYear * 100).toFixed(1)}% a.a.</li>
-                  <li>Rentabilidade da carteira líquida: {(a.returnYear * 100).toFixed(1)}% a.a.</li>
+                  <li>Crescimento da renda: {dec1((a.incomeGrowthYear * 100))}% a.a.</li>
+                  <li>Inflação das despesas: {dec1((a.inflationYear * 100))}% a.a.</li>
+                  <li>Rentabilidade da carteira líquida: {dec1((a.returnYear * 100))}% a.a.</li>
                   <li>Reajustes cadastrados na renda: {a.applyExpectedChanges ? "considerados" : "ignorados"}</li>
                 </ul>
               </div>
