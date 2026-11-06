@@ -2,8 +2,6 @@
 
 Aplicativo web de gestão financeira pessoal com um consultor de IA. Ele não serve só para registrar gastos: lê sua realidade financeira, identifica riscos, planeja metas e avalia decisões antes de você tomá-las.
 
-> As versões anteriores (HTML único com `localStorage`) foram movidas para [`legacy/`](legacy/).
-
 ## O que já funciona (v0.1)
 
 | Módulo | Destaques |
