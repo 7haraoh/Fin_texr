@@ -1,7 +1,8 @@
-// Armazenamento da versão publicada: banco privado da página (capability `db`,
-// caminho data/users/<id>/ — inacessível a qualquer outra pessoa, inclusive o
-// dono do artifact). Sem o banco (página aberta fora do claude.ai), usa o
-// armazenamento local do navegador.
+// Armazenamento da versão publicada: banco da página (capability `db`) no caminho
+// data/fin, com regra de acesso "somente o dono" (leitura e escrita). Assim o dono
+// — e o Claude agindo a pedido dele numa conversa — podem ler e ajustar os dados;
+// ninguém mais. Versões anteriores guardavam em data/users/<id>/fin: esses dados
+// são migrados na primeira abertura. Sem o banco, usa o armazenamento local.
 
 import { useSyncExternalStore } from "react";
 import type { FinancialData, Profile } from "@/lib/finance/types";
@@ -56,14 +57,32 @@ interface ClaudeDB {
 }
 interface ClaudeCollection {
   doc(id: string): { set(d: Record<string, unknown>): Promise<void>; delete(): Promise<void> };
+  get(): Promise<{ docs: { id: string; data(): Record<string, unknown> | undefined }[] }>;
   onSnapshot(next: (s: { docs: { id: string; data(): Record<string, unknown> | undefined }[] }) => void, err?: (e: { message: string }) => void): () => void;
 }
 declare global {
   interface Window { claude?: { use(name: string): Promise<unknown> } }
 }
 
-function dbBackend(db: ClaudeDB, uid: string): Backend {
-  const root = db.doc(`data/users/${uid}/fin`);
+export const DB_ROOT = "data/fin";
+
+/** Move dados do caminho antigo (privado por pessoa) para data/fin, uma única vez. */
+async function migrateLegacy(db: ClaudeDB, uid: string) {
+  const oldRoot = db.doc(`data/users/${uid}/fin`);
+  const newRoot = db.doc(DB_ROOT);
+  for (const name of COLLECTIONS) {
+    const [oldSnap, newSnap] = await Promise.all([oldRoot.collection(name).get(), newRoot.collection(name).get()]);
+    if (!oldSnap.docs.length) continue;
+    const existing = new Set(newSnap.docs.map((d) => d.id));
+    for (const d of oldSnap.docs) {
+      if (!existing.has(d.id)) await newRoot.collection(name).doc(d.id).set(d.data() ?? {});
+      await oldRoot.collection(name).doc(d.id).delete();
+    }
+  }
+}
+
+function dbBackend(db: ClaudeDB): Backend {
+  const root = db.doc(DB_ROOT);
   return {
     kind: "db",
     subscribe(name, cb, onError) {
@@ -96,7 +115,10 @@ export async function initStore() {
       window.claude?.use("db") ?? Promise.resolve(null),
       window.claude?.use("user") ?? Promise.resolve(null),
     ]) as [ClaudeDB | null, { id(): Promise<string> } | null];
-    if (db && user) b = dbBackend(db, await user.id());
+    if (db && user) {
+      try { await migrateLegacy(db, await user.id()); } catch { /* sem dados antigos */ }
+      b = dbBackend(db);
+    }
   } catch { b = null; }
   backend = b ?? localBackend();
   setState({ backend: backend.kind });

@@ -58,7 +58,7 @@ export default function Dados() {
         <Card title="Onde seus dados ficam" action={<ShieldCheck size={18} className="text-pos" />}>
           <ul className="list-disc space-y-1 pl-4 text-sm text-muted">
             {store.backend === "db" ? (
-              <li>Num espaço privado desta página, ligado à sua conta claude.ai. Só você lê e altera esses dados, de qualquer aparelho em que estiver conectado.</li>
+              <li>No banco desta página, com acesso restrito ao dono: só você lê e altera, de qualquer aparelho conectado à sua conta. Quando você pede numa conversa, o Claude pode ler e ajustar esses dados em seu nome para analisar com você.</li>
             ) : (
               <li>Apenas neste navegador (página aberta fora do claude.ai). Abra pelo link do claude.ai para guardar na sua conta e acessar de qualquer aparelho.</li>
             )}
