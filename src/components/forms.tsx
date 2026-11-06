@@ -142,7 +142,8 @@ export function EntityForm({ table, fields, initial, id, onDone, submitLabel = "
     const payload: Record<string, unknown> = {};
     for (const f of fields) {
       const v = values[f.name];
-      if (f.showIf && !f.showIf(values)) { payload[f.name] = f.type === "checkbox" ? false : ""; continue; }
+      // Campo oculto: não envia valor (o esquema aplica o padrão ou null)
+      if (f.showIf && !f.showIf(values)) { if (f.type === "checkbox") payload[f.name] = false; continue; }
       payload[f.name] = (f.type === "money" || f.type === "percent") && typeof v === "string" ? parseBRNumber(v) : v;
     }
     start(async () => {
@@ -161,7 +162,12 @@ export function EntityForm({ table, fields, initial, id, onDone, submitLabel = "
             onChange={(v) => setValues((prev) => ({ ...prev, [f.name]: v, ...(f.effect ? f.effect(v, prev) : {}) }))} />
         ))}
       </div>
-      {result && !result.ok && <p className="text-sm text-neg">{result.error}</p>}
+      {result && !result.ok && (
+        <p className="text-sm text-neg">
+          {result.error}
+          {Object.keys(fieldErrors).filter((k) => !visible.some((f) => f.name === k)).map((k) => ` ${fields.find((f) => f.name === k)?.label ?? k}: ${fieldErrors[k]}.`).join("")}
+        </p>
+      )}
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onDone} className={buttonClass("ghost")}>Cancelar</button>
         <button type="submit" disabled={pending} className={buttonClass("primary")}>{pending ? "Salvando…" : submitLabel}</button>
@@ -189,9 +195,10 @@ export function CrudSection<T extends { id: string }>({
   const [editing, setEditing] = useState<T | "new" | null>(null);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   const remove = (row: T) => {
-    if (!confirm("Excluir este registro? Esta ação não pode ser desfeita.")) return;
+    setConfirming(null);
     start(async () => {
       const r = await deleteRecord(table, row.id);
       if (!r.ok) setError(r.error); else router.refresh();
@@ -225,9 +232,19 @@ export function CrudSection<T extends { id: string }>({
                     <td key={i} className={cx("px-5 py-2.5", c.align === "right" && "text-right num", c.hideOnMobile && "hidden md:table-cell")}>{c.render(row)}</td>
                   ))}
                   <td className="px-5 py-2.5 text-right whitespace-nowrap">
-                    <button onClick={() => setEditing(row)} className={buttonClass("ghost", "sm")} aria-label="Editar"><Pencil size={14} /></button>
-                    {(!canDelete || canDelete(row)) && (
-                      <button onClick={() => remove(row)} disabled={pending} className={buttonClass("ghost", "sm")} aria-label="Excluir"><Trash size={14} /></button>
+                    {confirming === row.id ? (
+                      <span className="inline-flex items-center gap-1 text-xs">
+                        <span className="text-muted">Excluir?</span>
+                        <button onClick={() => remove(row)} disabled={pending} className={buttonClass("danger", "sm")}>Sim</button>
+                        <button onClick={() => setConfirming(null)} className={buttonClass("ghost", "sm")}>Não</button>
+                      </span>
+                    ) : (
+                      <>
+                        <button onClick={() => setEditing(row)} className={buttonClass("ghost", "sm")} aria-label="Editar"><Pencil size={14} /></button>
+                        {(!canDelete || canDelete(row)) && (
+                          <button onClick={() => setConfirming(row.id)} disabled={pending} className={buttonClass("ghost", "sm")} aria-label="Excluir"><Trash size={14} /></button>
+                        )}
+                      </>
                     )}
                   </td>
                 </tr>

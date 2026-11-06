@@ -75,8 +75,10 @@ export function ChatPanel({ compact }: { compact?: boolean }) {
     }
   }, [busy]);
 
+  const [confirmReset, setConfirmReset] = useState(false);
   const reset = async () => {
-    if (!confirm("Apagar todo o histórico de conversa?")) return;
+    if (!confirmReset) { setConfirmReset(true); return; }
+    setConfirmReset(false);
     await clearChat();
     setMessages([]);
   };
@@ -118,7 +120,7 @@ export function ChatPanel({ compact }: { compact?: boolean }) {
         </div>
         <div className="mt-2 flex items-center justify-between text-[11px] text-faint">
           <span>Orientação educacional — não substitui profissional habilitado.</span>
-          {messages.length > 0 && <button type="button" onClick={reset} className="flex items-center gap-1 hover:text-fg"><Eraser size={12} /> Limpar</button>}
+          {messages.length > 0 && <button type="button" onClick={reset} className="flex items-center gap-1 hover:text-fg"><Eraser size={12} /> {confirmReset ? "Confirmar limpeza" : "Limpar"}</button>}
         </div>
       </form>
     </div>

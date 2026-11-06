@@ -51,7 +51,9 @@ export default async function Dashboard() {
   }));
   if (!snaps.has(s.monthKey)) nwSeries.push({ label: monthLabel(s.monthKey), patrimonio: s.netWorth, reserva: s.assets.reserve });
 
-  const flows = s.history.map((h) => ({ label: h.label, receitas: h.income, despesas: h.expenses, economia: h.savings }));
+  // Só a partir do primeiro mês com lançamentos (antes disso não há registro)
+  const firstData = s.history.findIndex((h) => h.hasData);
+  const flows = s.history.slice(firstData < 0 ? s.history.length - 1 : firstData).map((h) => ({ label: h.label, receitas: h.income, despesas: h.expenses, economia: h.savings }));
   const allocation = budget ? Object.fromEntries(budget.map((b) => [b.key, b.planned])) : suggestion.allocations;
   const income = s.income.monthlyNet;
   const reserveCoverage = analysis.reserve.coverageMonths;
@@ -84,7 +86,7 @@ export default async function Dashboard() {
                 <span className="num text-5xl font-semibold tracking-tight" style={{ color: LEVEL_STYLE[health.level!].color }}>{health.score}</span>
                 <div className="pb-1.5">
                   <div className="text-lg font-semibold" style={{ color: LEVEL_STYLE[health.level!].color }}>{HEALTH_LABELS[health.level!]}</div>
-                  <div className="text-xs text-faint">de 100 pontos</div>
+                  <div className="text-xs text-faint">de 100 pontos{s.dataQuality.completeMonths === 0 && " · prévia"}</div>
                 </div>
               </div>
               <div className="mt-3 flex gap-1" aria-hidden>
@@ -93,6 +95,7 @@ export default async function Dashboard() {
                 ))}
               </div>
               <p className="mt-3 text-sm text-muted">{LEVEL_STYLE[health.level!].text}</p>
+              {s.dataQuality.completeMonths === 0 && <p className="mt-2 text-xs text-warn">Prévia baseada no mês atual incompleto. A nota fica mais precisa após o primeiro mês completo de lançamentos.</p>}
               <ul className="mt-4 space-y-2.5">
                 {health.components.map((c) => (
                   <li key={c.key}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { deleteAccount } from "@/app/actions";
 import { buttonClass } from "./ui";
 
@@ -8,6 +9,7 @@ export function DeleteAccount() {
   const [text, setText] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const router = useRouter();
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted">Remove permanentemente sua conta, todos os lançamentos, metas, conversas e histórico. Esta ação não pode ser desfeita — exporte seus dados antes.</p>
@@ -16,7 +18,7 @@ export function DeleteAccount() {
         <button disabled={text !== "EXCLUIR" || pending} className={buttonClass("danger")}
           onClick={() => start(async () => {
             const r = await deleteAccount(text);
-            if (r.ok) window.location.href = "/login"; else setErr(r.error);
+            if (r.ok) { setText(""); router.replace("/login"); router.refresh(); } else setErr(r.error);
           })}>{pending ? "Excluindo…" : "Excluir conta permanentemente"}</button>
       </div>
       {err && <p className="text-sm text-neg">{err}</p>}

@@ -213,3 +213,15 @@ describe("regressões", () => {
     expect(s.assets.investments).toBe(0);
   });
 });
+
+describe("validação de lançamentos", () => {
+  it("aceita despesa à vista sem informar parcelas nem cartão (campos ocultos)", async () => {
+    const { schemas } = await import("@/lib/validation/schemas");
+    const r = schemas.transactions.parse({
+      kind: "expense", description: "Mercado", amount: 450.9, occurred_on: "2026-11-06", payment_method: "pix",
+      recurrence: "nenhuma", is_essential: true, category_id: "00000000-0000-4000-8000-000000000007",
+    });
+    expect(r.installments).toBe(1);
+    expect(r.card_id).toBeNull();
+  });
+});
