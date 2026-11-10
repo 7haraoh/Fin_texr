@@ -74,8 +74,8 @@ export function generateInsights(ctx: Ctx, max = 8): Insight[] {
       add({ id: `fatura_alta_${c.card.id}`, kind: "alerta", severity: "alto", title: `Fatura elevada no ${c.card.name}`, detail: `${fmt(c.nextBill.remaining)} — ${pctTxt(c.nextBill.remaining / income)} da renda mensal.`, href: "/cartoes" });
     }
   }
-  if (s.freeToSpend.cashFree < 0 && (s.futureCommitments[0]?.total ?? 0) > 0) {
-    add({ id: "caixa", kind: "alerta", severity: "alto", title: "Saldo disponível não cobre os compromissos do mês", detail: `Faltam ${fmt(-s.freeToSpend.cashFree)} para faturas e parcelas que vencem neste mês.`, href: "/" });
+  if (s.freeToSpend.cashFree < 0 && s.freeToSpend.dueRestOfMonth > 0) {
+    add({ id: "caixa", kind: "alerta", severity: "alto", title: "Saldo disponível não cobre o que vence este mês", detail: `Faltam ${fmt(-s.freeToSpend.cashFree)} para faturas e parcelas que ainda vencem até o fim do mês.`, href: "/cartoes" });
   }
 
   // Reserva

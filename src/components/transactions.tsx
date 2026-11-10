@@ -7,13 +7,10 @@ import { BUCKET, KIND, PAYMENT, RECURRENCE, opts } from "@/lib/labels";
 import { dateBR } from "@/lib/finance/format";
 import type { Category, CreditCard, Transaction } from "@/lib/finance/types";
 
-export function TransactionsSection({ rows, categories, cards, today }: {
-  rows: Transaction[]; categories: Category[]; cards: CreditCard[]; today: string;
-}) {
-  const catById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
-  const cardById = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
-
-  const fields: FieldDef[] = useMemo(() => [
+/** Campos do formulário de lançamento (reaproveitados no app publicado). */
+export function transactionFields(categories: Category[], cards: CreditCard[]): FieldDef[] {
+  const catById = new Map(categories.map((c) => [c.id, c]));
+  return [
     { name: "kind", label: "Tipo de lançamento", type: "select", required: true, options: opts(KIND), full: true,
       help: "Pagamento de fatura apenas baixa a dívida do cartão — não é contado como gasto." },
     { name: "description", label: "Descrição", type: "text", required: true, placeholder: "Ex.: Supermercado" },
@@ -31,7 +28,16 @@ export function TransactionsSection({ rows, categories, cards, today }: {
     { name: "recurrence", label: "Recorrência", type: "select", required: true, options: opts(RECURRENCE), showIf: (v) => v.kind === "expense" },
     { name: "is_essential", label: "Despesa essencial", type: "checkbox", showIf: (v) => v.kind === "expense", help: "Necessária para manter seu padrão básico de vida" },
     { name: "notes", label: "Observações", type: "textarea", full: true },
-  ], [categories, cards, catById]);
+  ];
+}
+
+export function TransactionsSection({ rows, categories, cards, today }: {
+  rows: Transaction[]; categories: Category[]; cards: CreditCard[]; today: string;
+}) {
+  const catById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const cardById = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
+
+  const fields: FieldDef[] = useMemo(() => transactionFields(categories, cards), [categories, cards]);
 
   return (
     <CrudSection table="transactions" rows={rows} fields={fields} addLabel="Novo lançamento"

@@ -6,7 +6,7 @@
 //  • Parcelas de empréstimos/financiamentos vêm do cadastro de Obrigações.
 
 import { CardStatus, cardDueByMonth, computeCardStatus } from "./cards";
-import { addMonthsKey, monthKey, monthLabel, remainingDaysInMonth } from "./dates";
+import { addMonthsKey, monthKey, monthLabel, parseISO, remainingDaysInMonth } from "./dates";
 import {
   Allocations, Bucket, Category, FinancialData, IncomeSource, Recurrence, Transaction, num, round2,
 } from "./types";
@@ -135,6 +135,7 @@ export interface Snapshot {
     monthRemaining: number;
     perDay: number;
     cashFree: number;
+    dueRestOfMonth: number;
     today: number;
     remainingDays: number;
   };
@@ -355,8 +356,14 @@ export function buildSnapshot(data: FinancialData, today: string): Snapshot {
     month.income - month.expenses - pendingRecurringThisMonth - monthlyPayments - plannedSavings,
   );
   const perDay = round2(Math.max(0, monthRemaining) / remainingDays);
-  // Caixa livre: dinheiro disponível menos faturas e parcelas que vencem neste mês
-  const dueThisMonth = futureCommitments[0]?.total ?? 0;
+  // Caixa livre: dinheiro disponível menos o que ainda vence até o fim do mês:
+  // faturas com vencimento entre hoje e o fim do mês (ou vencidas) e parcelas com dia
+  // de vencimento a partir de hoje. Parcelas sem dia definido não entram (não dá para saber se já foram pagas).
+  const { d: todayDay } = parseISO(today);
+  const dueThisMonth = round2(
+    cards.reduce((t, c) => t + c.statements.filter((st) => st.overdue || (st.remaining > 0 && st.dueDate >= today && monthKey(st.dueDate) === curKey)).reduce((x, st) => x + st.remaining, 0), 0)
+    + data.debts.filter((d) => d.due_day && d.due_day >= todayDay && d.remaining_installments !== 0).reduce((t, d) => t + num(d.monthly_payment), 0),
+  );
   const cashFree = round2(available - dueThisMonth);
   const todayFree = round2(Math.max(0, Math.min(perDay, cashFree > 0 ? cashFree : 0)));
 
@@ -404,7 +411,7 @@ export function buildSnapshot(data: FinancialData, today: string): Snapshot {
     plannedSavings,
     categories,
     futureCommitments,
-    freeToSpend: { monthRemaining, perDay, cashFree, today: todayFree, remainingDays },
+    freeToSpend: { monthRemaining, perDay, cashFree, dueRestOfMonth: dueThisMonth, today: todayFree, remainingDays },
   };
 }
 

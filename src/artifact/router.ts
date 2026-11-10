@@ -2,7 +2,7 @@
 // Parâmetros de consulta ficam só em memória.
 import { useSyncExternalStore } from "react";
 
-export const VIEWS = ["consultor", "despesas", "orcamento", "metas", "simulador", "reserva", "cartoes", "projecoes", "relatorio", "perfil", "dados"] as const;
+export const VIEWS = ["lancamentos", "consultor", "plano", "mais", "analise", "despesas", "orcamento", "metas", "simulador", "reserva", "cartoes", "projecoes", "relatorio", "perfil", "dados"] as const;
 export type View = "" | (typeof VIEWS)[number];
 
 interface RouteState { view: View; params: Record<string, string>; anchor?: string }
