@@ -248,3 +248,14 @@ describe("cenário de despesa médica", () => {
     expect(stressTest(s, { hasHealthPlan: true }).find((c) => c.key === "medica")!.upfrontCost).toBe(1000);
   });
 });
+
+describe("metas com calendário de aportes", () => {
+  it("usa o calendário para projeção e ritmo", () => {
+    const g = analyzeGoal({ id: "r", name: "Reserva", type: "reserva", target_amount: 10000, current_amount: 0, deadline: "2027-05-31", priority: 1,
+      monthly_contribution: 1700, horizon: "curto", status: "ativa",
+      schedule: { "2026-11": 0, "2026-12": 700, "2027-01": 1300, "2027-02": 2000, "2027-03": 2000, "2027-04": 2800, "2027-05": 1200 } }, TODAY);
+    expect(g.projectedMonths).toBe(7); // nov (0) … mai
+    expect(g.status).toBe("no_ritmo");
+    expect(g.planned).toBeCloseTo((0 + 700 + 1300 + 2000 + 2000 + 2800) / 6, 2);
+  });
+});

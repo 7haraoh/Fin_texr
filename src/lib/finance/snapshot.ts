@@ -347,7 +347,7 @@ export function buildSnapshot(data: FinancialData, today: string): Snapshot {
   const plannedSavings = round2(
     plan
       ? num(plan.reserva) + num(plan.investimentos) + num(plan.metas_curto) + num(plan.metas_longo)
-      : data.goals.filter((g) => g.status === "ativa").reduce((s, g) => s + num(g.monthly_contribution), 0),
+      : data.goals.filter((g) => g.status === "ativa").reduce((s, g) => s + num(g.schedule?.[curKey] ?? g.monthly_contribution), 0),
   );
 
   // ---------- Livre para gastar ----------

@@ -13,7 +13,7 @@ export function analyze(data: FinancialData, today: string) {
   const goals = data.goals.map((g) => analyzeGoal(g, today));
   const reserveGoal = data.goals.find((g) => g.type === "reserva" && g.status === "ativa");
   const planReserve = num(data.budgetPlan?.allocations?.reserva);
-  const reserveContribution = reserveGoal ? num(reserveGoal.monthly_contribution) : planReserve || Math.max(0, snapshot.savingsCapacity * 0.5);
+  const reserveContribution = reserveGoal ? analyzeGoal(reserveGoal, today).planned : planReserve || Math.max(0, snapshot.savingsCapacity * 0.5);
   const lifestyle = data.profile?.lifestyle ?? {};
   const reserve = analyzeReserve(snapshot, reserveContribution, lifestyle.dependents ?? 0);
   const suggestion = suggestBudget(snapshot, goals, reserve, lifestyle);

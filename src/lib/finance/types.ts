@@ -109,6 +109,7 @@ export interface Transaction {
   is_essential: boolean;
   recurrence: Recurrence;
   notes: string | null;
+  created_at?: string;
 }
 
 export type GoalType =
@@ -126,6 +127,8 @@ export interface Goal {
   monthly_contribution: Num;
   horizon: "curto" | "longo";
   status: "ativa" | "pausada" | "concluida";
+  /** Aporte planejado por mês ("YYYY-MM" → valor), quando varia ao longo do tempo */
+  schedule?: Record<string, number> | null;
 }
 
 export type AllocationKey =

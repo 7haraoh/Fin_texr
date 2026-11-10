@@ -21,17 +21,28 @@ export function analyzeGoal(goal: Goal, today: string): GoalAnalysis {
   const target = num(goal.target_amount);
   const current = num(goal.current_amount);
   const remaining = round2(Math.max(0, target - current));
-  const planned = num(goal.monthly_contribution);
   const cur = monthKey(today);
+  const planFor = (key: string) => num(goal.schedule?.[key] ?? goal.monthly_contribution);
+  // Aporte "do mês": o do calendário, ou a média dos próximos 6 meses quando o mês atual é zero
+  const next6 = Array.from({ length: 6 }, (_, i) => planFor(addMonthsKey(cur, i)));
+  const planned = planFor(cur) > 0 ? planFor(cur) : round2(next6.reduce((s, v) => s + v, 0) / 6);
   const monthsLeft = goal.deadline ? Math.max(0, monthsBetweenKeys(cur, monthKey(goal.deadline))) : null;
   const requiredMonthly = monthsLeft !== null ? round2(monthsLeft > 0 ? remaining / monthsLeft : remaining) : null;
-  const projectedMonths = remaining === 0 ? 0 : planned > 0 ? Math.ceil(remaining / planned) : null;
+  let projectedMonths: number | null = remaining === 0 ? 0 : null;
+  if (projectedMonths === null) {
+    let acc = 0;
+    for (let i = 0; i < 600; i++) {
+      acc += planFor(addMonthsKey(cur, i));
+      if (acc >= remaining - 0.005) { projectedMonths = i + 1; break; }
+    }
+  }
   const projectedDate = projectedMonths !== null ? addMonthsKey(cur, projectedMonths) : null;
 
   let status: GoalAnalysis["status"];
   if (remaining === 0 || goal.status === "concluida") status = "concluida";
   else if (planned <= 0) status = "sem_aporte";
   else if (requiredMonthly === null) status = "sem_prazo";
+  else if (goal.schedule && projectedMonths !== null && monthsLeft !== null) status = projectedMonths <= monthsLeft + 1 ? "no_ritmo" : "atrasada";
   else status = planned + 0.01 >= requiredMonthly ? "no_ritmo" : "atrasada";
 
   const suggestions: string[] = [];
@@ -80,8 +91,9 @@ export function goalProjection(a: GoalAnalysis, today: string, months = 24): { k
   const cur = monthKey(today);
   const horizon = Math.min(months, Math.max(6, (a.projectedMonths ?? 12) + 1));
   for (let i = 0; i <= horizon; i++) {
-    out.push({ key: addMonthsKey(cur, i), value: round2(Math.min(v, a.target)) });
-    v += a.planned;
+    const key = addMonthsKey(cur, i);
+    out.push({ key, value: round2(Math.min(v, a.target)) });
+    v += num(a.goal.schedule?.[key] ?? a.goal.monthly_contribution);
   }
   return out;
 }
