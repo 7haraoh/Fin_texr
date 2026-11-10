@@ -2,10 +2,14 @@ import { ChevronRight, Sparkles, TriangleExclamationPoint, OctagonExclamationPoi
 import { brl, dateBR } from "@/lib/finance/format";
 import { monthLabelFull, monthLabel } from "@/lib/finance/dates";
 import { num } from "@/lib/finance/types";
-import { cx } from "@/components/ui";
+import { buttonClass, cx } from "@/components/ui";
 import { analysisNow } from "../data-shim";
 import { navigate } from "../router";
-import { relevantCycle } from "../cycle";
+import { relevantCycle, type CycleBill } from "../cycle";
+import { billPayments } from "../store";
+import { BillSheet, SavingSheet } from "./sheets";
+import { useState } from "react";
+import { CircleCheck as Check } from "lucide-react";
 import { Amount, CatIcon, Panel, Row, Section } from "./common";
 
 const DOW = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
@@ -21,7 +25,16 @@ export function Home() {
   const s = a.snapshot;
   const name = data.profile?.full_name?.split(" ")[0];
   const benefit = data.incomes.filter((i) => i.active && i.type === "beneficio").reduce((t, i) => t + num(i.net_amount), 0);
-  const { cycle, upcoming } = relevantCycle(data, a, today);
+  const { cycle, upcoming } = relevantCycle(data, a, today, billPayments());
+  const [openBill, setOpenBill] = useState<CycleBill | null>(null);
+  const [savingGoal, setSavingGoal] = useState<{ id: string; name: string } | null>(null);
+  const savingSuggested = (goalId: string) => {
+    const g = data.goals.find((x) => x.id === goalId);
+    if (!g) return 0;
+    const planned = num(g.schedule?.[cycle.key] ?? g.monthly_contribution);
+    const savedForGoal = data.transactions.filter((t) => t.notes === `goal:${goalId}` && t.occurred_on >= cycle.savingStart && t.occurred_on < cycle.end).reduce((x, t) => x + num(t.amount), 0);
+    return Math.max(0, planned - savedForGoal);
+  };
   const pct = (v: number) => (cycle.salary > 0 ? Math.min(100, (v / cycle.salary) * 100) : 0);
   const goals = a.goals.filter((g) => g.goal.status === "ativa").slice(0, 3);
   const alert = a.insights.find((i) => i.kind !== "positivo") ?? a.insights[0];
@@ -67,8 +80,8 @@ export function Home() {
 
         <dl className="mt-4 space-y-2 text-[14px]">
           <div className="flex justify-between"><dt className="text-muted">Salário {upcoming ? "previsto" : ""}</dt><dd className="num font-semibold">{brl(cycle.salary)}</dd></div>
-          <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted"><Dot c="var(--c-slate)" />Contas até {dateBR(cycle.end)}</dt><dd className="num">− {brl(cycle.billsTotal)}</dd></div>
-          <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted"><Dot c="var(--c-blue)" />Reserva e metas</dt><dd className="num">− {brl(cycle.reserve)}</dd></div>
+          <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted"><Dot c="var(--c-slate)" /><span>Contas até {dateBR(cycle.end)}{cycle.paidTotal > 0 && <span className="block text-[12px] text-faint">{brl(cycle.paidTotal)} já pagas</span>}</span></dt><dd className="num">− {brl(cycle.billsTotal)}</dd></div>
+          <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted"><Dot c="var(--c-blue)" /><span>Reserva e metas{cycle.saved > 0 && <span className="block text-[12px] text-faint">{brl(cycle.saved)} já guardados</span>}</span></dt><dd className="num">− {brl(Math.max(cycle.reserve, cycle.saved))}</dd></div>
           {cycle.spentOutsideCard > 0 && <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted"><Dot c="var(--c-amber)" />Já gasto neste salário</dt><dd className="num">− {brl(cycle.spentOutsideCard)}</dd></div>}
           <div className="flex justify-between border-t border-line pt-2"><dt className="flex items-center gap-2 font-semibold"><Dot c="var(--accent)" />Livre</dt><dd className="num font-semibold">{brl(cycle.free)}</dd></div>
         </dl>
@@ -93,19 +106,21 @@ export function Home() {
         </Panel>
       )}
 
-      <Section title={`Contas deste salário · ${brl(cycle.billsTotal)}`}>
+      <Section title={`Contas deste salário · ${brl(cycle.billsTotal - cycle.paidTotal)} a pagar`}>
         <Panel className="divide-y divide-line overflow-hidden">
           {cycle.bills.length === 0 && <p className="p-4 text-[14px] text-muted">Nenhuma conta prevista para este salário.</p>}
           {cycle.bills.map((b) => {
             const chip = b.date ? dayChip(b.date) : null;
             return (
-              <Row key={b.id}
-                left={<span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl bg-surface-2 leading-none">
-                  {chip ? <><span className="num text-[16px] font-semibold">{chip.day}</span><span className="mt-0.5 text-[10px] uppercase text-muted">{chip.dow}</span></> : <span className="text-[10px] font-semibold uppercase text-muted">sem dia</span>}
-                </span>}
-                title={b.label}
-                subtitle={b.detail}
-                right={<Amount value={b.amount} className="text-[15px] font-semibold" />} />
+              <Row key={b.id} onClick={() => setOpenBill(b)}
+                left={b.paid
+                  ? <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-pos"><Check size={22} /></span>
+                  : <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl bg-surface-2 leading-none">
+                    {chip ? <><span className="num text-[16px] font-semibold">{chip.day}</span><span className="mt-0.5 text-[10px] uppercase text-muted">{chip.dow}</span></> : <span className="text-[10px] font-semibold uppercase text-muted">sem dia</span>}
+                  </span>}
+                title={<span className={b.paid ? "text-muted line-through decoration-1" : undefined}>{b.label}</span>}
+                subtitle={b.paid ? `Paga em ${dateBR(b.paid.paid_on)}` : `${b.detail} · toque para pagar`}
+                right={<Amount value={b.amount} className={cx("text-[15px] font-semibold", b.paid && "text-muted")} />} />
             );
           })}
         </Panel>
@@ -115,7 +130,7 @@ export function Home() {
         <Section title="Metas" action={{ label: "Ver todas", href: "/plano?aba=metas" }}>
           <div className="grid gap-3 sm:grid-cols-2">
             {goals.map((g) => (
-              <Panel key={g.goal.id} onClick={() => navigate("/plano?aba=metas")} className="p-4">
+              <Panel key={g.goal.id} className="p-4">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="truncate text-[15px] font-semibold">{g.goal.name}</span>
                   <span className="num text-[13px] text-muted">{Math.round(g.progress * 100)}%</span>
@@ -123,7 +138,11 @@ export function Home() {
                 <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.max(2, g.progress * 100)}%` }} /></div>
                 <div className="mt-2 flex justify-between text-[12px] text-muted">
                   <span className="num">{brl(g.current)} de {brl(g.target)}</span>
-                  <span>{(() => { const v = num(g.goal.schedule?.[cycle.start.slice(0, 7)] ?? g.goal.monthly_contribution); return v ? `${brl(v)} neste salário` : "sem aporte"; })()}</span>
+                  <span>{(() => { const v = num(g.goal.schedule?.[cycle.key] ?? g.goal.monthly_contribution); return v ? `${brl(v)} neste salário` : "sem aporte"; })()}</span>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={() => setSavingGoal({ id: g.goal.id, name: g.goal.name })} className={cx(buttonClass("primary", "sm"), "rounded-full px-4")}>Guardar</button>
+                  <button onClick={() => navigate("/plano?aba=metas")} className={cx(buttonClass("ghost", "sm"), "rounded-full")}>Detalhes</button>
                 </div>
               </Panel>
             ))}
@@ -136,8 +155,8 @@ export function Home() {
           {recent.length === 0 && <p className="p-4 text-[14px] text-muted">Nada lançado ainda. Use o botão + para registrar.</p>}
           {recent.map((t) => {
             const c = t.category_id ? catById.get(t.category_id) : null;
-            return <Row key={t.id} left={<CatIcon cat={c} kind={t.kind} />} title={t.description} subtitle={`${c?.name ?? (t.kind === "income" ? "Receita" : "Sem categoria")} · ${dateBR(t.occurred_on)}`}
-              right={<Amount value={t.kind === "expense" ? -num(t.amount) : num(t.amount)} signed={t.kind === "income"} className="text-[15px] font-semibold" />} />;
+            return <Row key={t.id} left={<CatIcon cat={c} kind={t.kind} />} title={t.description} subtitle={`${c?.name ?? (t.kind === "income" ? "Receita" : t.kind === "card_payment" ? "Pagamento de fatura" : "Sem categoria")} · ${dateBR(t.occurred_on)}`}
+              right={<Amount value={t.kind === "income" ? num(t.amount) : -num(t.amount)} signed={t.kind === "income"} className={cx("text-[15px] font-semibold", t.kind === "card_payment" && "text-muted")} />} />;
           })}
         </Panel>
       </Section>
@@ -154,6 +173,8 @@ export function Home() {
           <span className="block text-[12px] text-muted">Ver análise completa</span>
         </Panel>
       </div>
+      <BillSheet bill={openBill} cycleKey={cycle.key} onClose={() => setOpenBill(null)} />
+      <SavingSheet goal={savingGoal} suggested={savingGoal ? savingSuggested(savingGoal.id) : 0} onClose={() => setSavingGoal(null)} />
     </div>
   );
 }

@@ -14,10 +14,13 @@ function readHash(): View {
   return (VIEWS as readonly string[]).includes(h) ? (h as View) : "";
 }
 
+// Últimos parâmetros de cada tela, para o "voltar" reabrir como estava
+const lastParams = new Map<View, Record<string, string>>();
+
 if (typeof window !== "undefined") {
   window.addEventListener("hashchange", () => {
     const v = readHash();
-    if (v !== state.view) { state = { view: v, params: {} }; emit(); }
+    if (v !== state.view) { state = { view: v, params: lastParams.get(v) ?? {} }; emit(); window.scrollTo({ top: 0 }); }
   });
 }
 
@@ -27,8 +30,12 @@ export function navigate(href: string) {
   const url = new URL(href, "https://x.invalid");
   const seg = url.pathname.replace(/^\/+/, "").split("/")[0];
   const view = ((VIEWS as readonly string[]).includes(seg) ? seg : "") as View;
-  state = { view, params: Object.fromEntries(url.searchParams), anchor: url.hash.replace(/^#/, "") || undefined };
-  try { history.replaceState(null, "", view ? `#${view}` : location.pathname + location.search); } catch { /* sandbox */ }
+  const params = Object.fromEntries(url.searchParams);
+  lastParams.set(view, params);
+  const changed = view !== state.view;
+  state = { view, params, anchor: url.hash.replace(/^#/, "") || undefined };
+  // Cada troca de tela vira uma entrada no histórico: o "voltar" do celular funciona
+  try { if (changed) location.hash = view || "inicio"; } catch { /* sandbox */ }
   emit();
   setTimeout(() => {
     if (state.anchor) document.getElementById(state.anchor)?.scrollIntoView({ behavior: "smooth" });

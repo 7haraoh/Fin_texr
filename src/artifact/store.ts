@@ -11,7 +11,7 @@ import { DEFAULT_CATEGORIES } from "./defaults";
 
 export const COLLECTIONS = [
   "income_sources", "assets", "debts", "credit_cards", "categories", "transactions",
-  "goals", "category_limits", "budget_plans", "monthly_snapshots", "chat_messages", "meta",
+  "goals", "category_limits", "budget_plans", "monthly_snapshots", "chat_messages", "meta", "bill_payments",
 ] as const;
 export type CollectionName = (typeof COLLECTIONS)[number];
 export type Row = Record<string, unknown> & { id: string };
@@ -179,6 +179,11 @@ export function financialData(): FinancialData {
   } as unknown as FinancialData;
   cachedData = { version: state.version, data };
   return data;
+}
+
+export interface BillPayment { id: string; bill_key: string; cycle_key: string; amount: number; paid_on: string; ref_tx?: string | null; kind: string }
+export function billPayments(): BillPayment[] {
+  return state.rows.bill_payments as unknown as BillPayment[];
 }
 
 export function chatMessages(): ChatMsg[] {
