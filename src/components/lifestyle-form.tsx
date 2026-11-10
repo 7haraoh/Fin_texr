@@ -26,6 +26,8 @@ export function LifestyleForm({ profile }: { profile: Profile | null }) {
     travel_frequency: String(ls.travel_frequency ?? ""),
     save_vs_enjoy: String(ls.save_vs_enjoy ?? "3"),
     dependents: ls.dependents !== undefined ? String(ls.dependents) : "",
+    health_plan: ls.health_plan === true ? "sim" : ls.health_plan === false ? "nao" : "",
+    health_plan_name: String(ls.health_plan_name ?? ""),
     ...Object.fromEntries(TEXT_FIELDS.map((f) => [f.key, String(ls[f.key] ?? "")])),
   }));
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -39,6 +41,7 @@ export function LifestyleForm({ profile }: { profile: Profile | null }) {
         full_name: v.full_name, risk_profile: v.risk_profile,
         lifestyle: {
           travel_frequency: v.travel_frequency, save_vs_enjoy: v.save_vs_enjoy, dependents: v.dependents,
+          health_plan: v.health_plan === "sim" ? true : v.health_plan === "nao" ? false : "", health_plan_name: v.health_plan_name,
           ...Object.fromEntries(TEXT_FIELDS.map((f) => [f.key, v[f.key]])),
         },
       });
@@ -68,6 +71,20 @@ export function LifestyleForm({ profile }: { profile: Profile | null }) {
           <label className="mb-1 block text-xs font-medium text-muted">Dependentes financeiros</label>
           <input className="input" type="number" min={0} max={20} value={v.dependents} onChange={set("dependents")} />
         </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-muted">Plano de saúde</label>
+          <select className="input" value={v.health_plan} onChange={set("health_plan")}>
+            <option value="">Não informado</option>
+            <option value="sim">Tenho</option>
+            <option value="nao">Não tenho</option>
+          </select>
+        </div>
+        {v.health_plan === "sim" && (
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted">Qual plano</label>
+            <input className="input" value={v.health_plan_name} onChange={set("health_plan_name")} maxLength={80} placeholder="Ex.: Unimed Unipleno" />
+          </div>
+        )}
         <div>
           <label className="mb-1 block text-xs font-medium text-muted">Frequência de viagens</label>
           <select className="input" value={v.travel_frequency} onChange={set("travel_frequency")}>

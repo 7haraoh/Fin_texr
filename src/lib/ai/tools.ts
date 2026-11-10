@@ -40,7 +40,7 @@ const financingInput = z.object({
 const projectionInput = z.object({ meses: z.number().int().min(1).max(120) });
 const stressInput = z.object({
   reducao_renda_pct: z.number().min(0).max(100).default(30),
-  custo_medico: z.number().min(0).max(1e9).default(5000),
+  custo_medico: z.number().min(0).max(1e9).optional(),
   custo_veiculo: z.number().min(0).max(1e9).default(3000),
   custo_extraordinario: z.number().min(0).max(1e9).default(5000),
 });
@@ -211,7 +211,7 @@ export function runAdvisorTool(name: string, rawInput: unknown, data: FinancialD
     case "testar_cenarios_adversos": {
       const i = stressInput.parse(rawInput ?? {});
       const out = stressTest(s, {
-        incomeReductionPct: i.reducao_renda_pct / 100, medicalCost: i.custo_medico,
+        incomeReductionPct: i.reducao_renda_pct / 100, medicalCost: i.custo_medico, hasHealthPlan: data.profile?.lifestyle?.health_plan === true,
         carRepairCost: i.custo_veiculo, extraordinaryCost: i.custo_extraordinario,
       });
       return JSON.stringify({

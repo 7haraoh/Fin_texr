@@ -121,6 +121,7 @@ export function buildAdvisorContext(data: FinancialData, a: Analysis, today: str
     perfil: {
       perfil_de_risco: data.profile?.risk_profile ?? "não informado",
       dependentes: lifestyle.dependents ?? "não informado",
+      plano_de_saude: lifestyle.health_plan === undefined ? "não informado" : lifestyle.health_plan ? `sim${lifestyle.health_plan_name ? ` (${lifestyle.health_plan_name})` : ""}` : "não",
       preferencia_economizar_1_a_aproveitar_5: lifestyle.save_vs_enjoy ?? "não informado",
       frequencia_de_viagens: lifestyle.travel_frequency ?? "não informado",
       habitos: lifestyle.habits, hobbies: lifestyle.hobbies, alimentacao: lifestyle.food_habits,

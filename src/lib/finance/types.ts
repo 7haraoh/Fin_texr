@@ -23,6 +23,9 @@ export interface Lifestyle {
   /** 1 = priorizo economizar … 5 = priorizo aproveitar o presente */
   save_vs_enjoy?: number;
   dependents?: number;
+  /** Tem plano de saúde (reduz o custo do cenário de despesa médica) */
+  health_plan?: boolean;
+  health_plan_name?: string;
 }
 
 export type IncomeFrequency = "mensal" | "quinzenal" | "semanal" | "anual" | "eventual";

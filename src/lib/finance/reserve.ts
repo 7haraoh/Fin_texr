@@ -59,7 +59,12 @@ export interface StressParams {
   medicalCost?: number;
   carRepairCost?: number;
   extraordinaryCost?: number;
+  /** Com plano de saúde, a despesa médica considerada é só o que o plano não cobre */
+  hasHealthPlan?: boolean;
 }
+
+export const MEDICAL_COST_WITH_PLAN = 1000;
+export const MEDICAL_COST_WITHOUT_PLAN = 5000;
 
 /**
  * Por quanto tempo o padrão ESSENCIAL de vida se mantém em cada cenário,
@@ -90,7 +95,9 @@ export function stressTest(s: Snapshot, p: StressParams = {}): StressScenario[] 
   return [
     mk("desemprego", "Perda de emprego", "Renda de salário zerada; mantêm-se outras fontes.", nonSalary, 0),
     mk("reducao", `Redução de renda (${Math.round(reduction * 100)}%)`, "Queda parcial da renda total.", s.income.monthlyNet * (1 - reduction), 0),
-    mk("medica", "Despesa médica inesperada", "Gasto pontual com saúde; renda mantida.", s.income.monthlyNet, p.medicalCost ?? 5000),
+    mk("medica", "Despesa médica inesperada",
+      p.hasHealthPlan ? "Com plano de saúde: coparticipação, remédios e o que o plano não cobre; renda mantida." : "Gasto pontual com saúde, sem plano; renda mantida.",
+      s.income.monthlyNet, p.medicalCost ?? (p.hasHealthPlan ? MEDICAL_COST_WITH_PLAN : MEDICAL_COST_WITHOUT_PLAN)),
     mk("veiculo", "Manutenção emergencial do veículo", "Reparo pontual; renda mantida.", s.income.monthlyNet, p.carRepairCost ?? 3000),
     mk("extra", "Despesa extraordinária + perda de emprego", "Pior caso: gasto pontual e salário zerado.", nonSalary, p.extraordinaryCost ?? 5000),
   ];

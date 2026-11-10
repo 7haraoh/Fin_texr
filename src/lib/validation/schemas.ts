@@ -121,5 +121,7 @@ export const profileSchema = z.object({
     travel_frequency: z.preprocess(emptyToNull, z.enum(["nunca", "raramente", "anual", "semestral", "frequente"]).nullable()),
     save_vs_enjoy: z.preprocess(emptyToNull, z.coerce.number().int().min(1).max(5).nullable()),
     dependents: optInt,
+    health_plan: z.preprocess((v) => (v === "" || v === undefined || v === null ? null : v === true || v === "true" || v === "on"), z.boolean().nullable()),
+    health_plan_name: optText(80),
   }),
 });

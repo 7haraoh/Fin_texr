@@ -239,3 +239,12 @@ describe("início do recebimento integral", () => {
     expect(buildSnapshot(data, TODAY).month.income).toBe(8985.26);
   });
 });
+
+describe("cenário de despesa médica", () => {
+  it("com plano de saúde considera só o que o plano não cobre", async () => {
+    const { stressTest } = await import("./reserve");
+    const s = buildSnapshot(baseData(), TODAY);
+    expect(stressTest(s).find((c) => c.key === "medica")!.upfrontCost).toBe(5000);
+    expect(stressTest(s, { hasHealthPlan: true }).find((c) => c.key === "medica")!.upfrontCost).toBe(1000);
+  });
+});

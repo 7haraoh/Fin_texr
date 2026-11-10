@@ -6,9 +6,10 @@ import { Badge, Card, EmptyState, Notice, PageHeader, Progress, Stat, cx } from 
 export const metadata = { title: "Reserva e proteção" };
 
 export default async function Reserva() {
-  const { analysis } = await loadAnalysis();
+  const { analysis, data } = await loadAnalysis();
   const { reserve: r, snapshot: s } = analysis;
-  const scenarios = stressTest(s);
+  const lifestyle = data.profile?.lifestyle ?? {};
+  const scenarios = stressTest(s, { hasHealthPlan: lifestyle.health_plan === true });
   if (r.essentialMonthly <= 0) {
     return (
       <>
@@ -62,7 +63,7 @@ export default async function Reserva() {
             </tbody>
           </table>
         </div>
-        <p className="mt-3 text-xs text-faint">Estimativas. Investimentos são considerados a 90% do valor (possíveis perdas, prazos e impostos). Peça ao consultor para simular valores diferentes.</p>
+        <p className="mt-3 text-xs text-faint">Estimativas. Investimentos são considerados a 90% do valor (possíveis perdas, prazos e impostos). {lifestyle.health_plan ? `Despesa médica considerada: R$ 1.000, por você ter plano de saúde${lifestyle.health_plan_name ? ` (${lifestyle.health_plan_name})` : ""}.` : "Despesa médica considerada: R$ 5.000. Se você tem plano de saúde, informe no Perfil."} Peça ao consultor para simular valores diferentes.</p>
       </Card>
     </>
   );
