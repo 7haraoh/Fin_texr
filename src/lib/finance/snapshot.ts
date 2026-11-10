@@ -159,6 +159,10 @@ export function buildSnapshot(data: FinancialData, today: string): Snapshot {
     .filter((s) => s.monthly > 0);
   const monthlyNet = round2(sources.reduce((s, x) => s + x.monthly, 0));
   const monthlyGross = round2(activeIncomes.reduce((s, i) => s + monthlyEquivalent(num(i.gross_amount) || num(i.net_amount), i.frequency), 0));
+  // Renda recorrente efetivamente recebida em cada mês (respeita o início do recebimento integral)
+  const recurringIn = (key: string) => round2(activeIncomes
+    .filter((i) => !i.starts_on || monthKey(i.starts_on) <= key)
+    .reduce((s, i) => s + monthlyEquivalent(num(i.net_amount), i.frequency), 0));
   const stableIncome = sources.filter((s) => s.stability === "estavel").reduce((s, x) => s + x.monthly, 0);
   const expectedChanges = activeIncomes
     .filter((i) => num(i.expected_change_pct) !== 0)
@@ -198,7 +202,7 @@ export function buildSnapshot(data: FinancialData, today: string): Snapshot {
     let f = flows.get(key);
     if (!f) {
       f = {
-        key, label: monthLabel(key), recurringIncome: monthlyNet, extraIncome: 0, income: 0, expenses: 0,
+        key, label: monthLabel(key), recurringIncome: recurringIn(key), extraIncome: 0, income: 0, expenses: 0,
         essential: 0, nonEssential: 0, fixed: 0, variable: 0, debtPayments: monthlyPayments, invested: 0, savings: 0,
         byBucket: emptyBuckets(), hasData: false,
       };

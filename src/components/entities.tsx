@@ -16,6 +16,7 @@ const incomeFields: FieldDef[] = [
   { name: "pay_day", label: "Dia do recebimento", type: "day" },
   { name: "expected_change_pct", label: "Reajuste/mudança prevista", type: "percent", help: "Ex.: 5 para +5%, -20 para redução" },
   { name: "expected_change_date", label: "A partir de", type: "date" },
+  { name: "starts_on", label: "Recebe o valor integral a partir de", type: "date", help: "Opcional. Para emprego ou benefício novo: antes desta data, só contam as receitas lançadas" },
   { name: "active", label: "Fonte de renda ativa", type: "checkbox" },
   { name: "notes", label: "Observações", type: "textarea", full: true },
 ];

@@ -25,6 +25,7 @@ export const schemas = {
     pay_day: optDay,
     expected_change_pct: optNumber,
     expected_change_date: optDate,
+    starts_on: optDate,
     notes: optText(),
     active: bool,
   }),

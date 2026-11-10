@@ -225,3 +225,17 @@ describe("validação de lançamentos", () => {
     expect(r.card_id).toBeNull();
   });
 });
+
+describe("início do recebimento integral", () => {
+  it("antes do primeiro mês integral, só contam as receitas lançadas", () => {
+    const data = baseData({
+      transactions: [tx({ kind: "income", amount: 2985.26, occurred_on: "2026-11-03", description: "Salário proporcional" })],
+    });
+    data.incomes[0].starts_on = "2026-12-01";
+    const s = buildSnapshot(data, TODAY);
+    expect(s.month.income).toBe(2985.26);
+    expect(s.income.monthlyNet).toBe(6000); // referência para planejamento continua cheia
+    data.incomes[0].starts_on = "2026-11-01";
+    expect(buildSnapshot(data, TODAY).month.income).toBe(8985.26);
+  });
+});

@@ -38,6 +38,8 @@ export interface IncomeSource {
   pay_day: number | null;
   expected_change_pct: Num;
   expected_change_date: string | null;
+  /** Primeiro mês em que o valor integral é recebido (ex.: emprego novo). Antes disso, só lançamentos de receita contam. */
+  starts_on?: string | null;
   notes: string | null;
   active: boolean;
 }
