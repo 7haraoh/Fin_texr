@@ -25,6 +25,8 @@ import Projecoes from "@/app/(app)/projecoes/page";
 import Relatorio from "@/app/(app)/relatorio/page";
 import Perfil from "@/app/(app)/perfil/page";
 
+const FULL_APP_URL = "https://claude.ai/artifact/SZXzadhCw5tmfU8sGFG3Dh";
+
 type PageFn = (props: { searchParams: Promise<Record<string, string>> }) => ReactNode | Promise<ReactNode>;
 
 /** Executa uma tela do app (função assíncrona) e renderiza o resultado; refaz a cada mudança nos dados. */
@@ -148,7 +150,16 @@ function App() {
         <ThemeButton />
       </header>
 
-      <main className="gutter mx-auto max-w-3xl pb-28 lg:py-8">{body}</main>
+      <main className="gutter mx-auto max-w-3xl pb-28 lg:py-8">
+        {store.backend === "local" && (
+          <div className="mb-5 rounded-2xl border border-warn/40 bg-surface p-4 text-[13px] leading-relaxed">
+            <strong className="block text-[14px]">Você está na versão do navegador.</strong>
+            Aqui os dados ficam só neste aparelho e o consultor IA não funciona. Seus dados e o consultor estão no app da sua conta:{" "}
+            <a href={FULL_APP_URL} target="_blank" rel="noopener" className="font-semibold text-accent underline">abrir o Finance OS completo</a>.
+          </div>
+        )}
+        {body}
+      </main>
 
       {showFab && (
         <button onClick={() => setAdding(true)} aria-label="Novo lançamento" className="fab fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-fg shadow-lg lg:hidden">

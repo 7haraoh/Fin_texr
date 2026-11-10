@@ -52,4 +52,9 @@ const html = `<title>Finance OS</title>
 <script>${js}</script>
 `;
 writeFileSync(r("dist/finance-os.html"), html);
+
+// Versão para o GitHub Pages: documento completo (o claude.ai adiciona o esqueleto sozinho; aqui não).
+const page = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0c0e11"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+${html}</head-placeholder>`.replace("</head-placeholder>", "");
+writeFileSync(r("index.html"), page.replace('<div id="root"></div>', '</head><body><div id="root"></div>') + "</body></html>\n");
 console.log(`dist/finance-os.html — ${(html.length / 1024).toFixed(0)} KiB`);
