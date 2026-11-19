@@ -35,7 +35,7 @@ export function Home() {
     const savedForGoal = data.transactions.filter((t) => t.notes === `goal:${goalId}` && t.occurred_on >= cycle.savingStart && t.occurred_on < cycle.end).reduce((x, t) => x + num(t.amount), 0);
     return Math.max(0, planned - savedForGoal);
   };
-  const pct = (v: number) => (cycle.salary > 0 ? Math.min(100, (v / cycle.salary) * 100) : 0);
+  const pct = (v: number) => (cycle.salary + cycle.extraIncome > 0 ? Math.min(100, (v / (cycle.salary + cycle.extraIncome)) * 100) : 0);
   const goals = a.goals.filter((g) => g.goal.status === "ativa").slice(0, 3);
   const alert = a.insights.find((i) => i.kind !== "positivo") ?? a.insights[0];
   const catById = new Map(data.categories.map((c) => [c.id, c]));
@@ -80,6 +80,9 @@ export function Home() {
 
         <dl className="mt-4 space-y-2 text-[14px]">
           <div className="flex justify-between"><dt className="text-muted">Salário {upcoming ? "previsto" : ""}</dt><dd className="num font-semibold">{brl(cycle.salary)}</dd></div>
+          {cycle.extraIncomeItems.map((x, i) => (
+            <div key={i} className="flex justify-between"><dt className="text-muted">+ {x.description} <span className="text-[12px] text-faint">({dateBR(x.date).slice(0, 5)})</span></dt><dd className="num font-semibold text-pos">+ {brl(x.amount)}</dd></div>
+          ))}
           <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted"><Dot c="var(--c-slate)" /><span>Contas até {dateBR(cycle.end)}{cycle.paidTotal > 0 && <span className="block text-[12px] text-faint">{brl(cycle.paidTotal)} já pagas</span>}</span></dt><dd className="num">− {brl(cycle.billsTotal)}</dd></div>
           <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted"><Dot c="var(--c-blue)" /><span>Reserva e metas{cycle.saved > 0 && <span className="block text-[12px] text-faint">{brl(cycle.saved)} já guardados</span>}</span></dt><dd className="num">− {brl(Math.max(cycle.reserve, cycle.saved))}</dd></div>
           {cycle.spentOutsideCard > 0 && <div className="flex justify-between"><dt className="flex items-center gap-2 text-muted"><Dot c="var(--c-amber)" />Já gasto neste salário</dt><dd className="num">− {brl(cycle.spentOutsideCard)}</dd></div>}

@@ -27,6 +27,8 @@ export interface Cycle {
   end: string;            // próximo salário (exclusivo)
   days: number;
   salary: number;
+  extraIncome: number;   // receitas extras lançadas dentro do ciclo (13º, retroativos em dinheiro…)
+  extraIncomeItems: { description: string; amount: number; date: string }[];
   salarySources: IncomeSource[];
   bills: CycleBill[];
   billsTotal: number;
@@ -160,11 +162,14 @@ export function cycleFor(data: FinancialData, a: Analysis, startKey: string, tod
   const cardSpending = round2(cycleTx.filter((t) => t.payment_method === "credito").reduce((s, t) => s + num(t.amount), 0));
 
   // Se já guardou mais do que o planejado, o excedente também sai do livre
-  const free = round2(salary - billsTotal - Math.max(reserve, saved) - spentOutsideCard);
+  const extraTx = data.transactions.filter((t) => t.kind === "income" && t.occurred_on >= start && t.occurred_on < end);
+  const extraIncome = round2(extraTx.reduce((s, t) => s + num(t.amount), 0));
+  const extraIncomeItems = extraTx.map((t) => ({ description: t.description, amount: num(t.amount), date: t.occurred_on }));
+  const free = round2(salary + extraIncome - billsTotal - Math.max(reserve, saved) - spentOutsideCard);
   const days = daysBetween(start, end);
   const remainingDays = today >= start ? Math.max(1, daysBetween(today, end)) : days;
   return {
-    start, end, days, salary, salarySources, bills, billsTotal, paidTotal, key: startKey, saved, savingStart, reserve, reserveDetail, spentOutsideCard, cardSpending,
+    start, end, days, salary, extraIncome, extraIncomeItems, salarySources, bills, billsTotal, paidTotal, key: startKey, saved, savingStart, reserve, reserveDetail, spentOutsideCard, cardSpending,
     free, perDay: round2(Math.max(0, free) / remainingDays), remainingDays,
   };
 }
